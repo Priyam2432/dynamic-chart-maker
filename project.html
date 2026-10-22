@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Chart Maker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        :root {
+            --page-text: #1e293b;
+            --muted: #64748b;
+            --surface: #fff;
+            --field: #fff;
+            --field-border: #cbd5e1;
+            --card-bg: #f8fafc;
+            --card-border: #e2e8f0;
+            --notice-bg: #eff6ff;
+            --grid-bg: #edf0f7
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #eef2ff, #f8fafc);
+            color: var(--page-text);
+            padding: 25px;
+            transition: background .2s, color .2s
+        }
+
+        body.dark {
+            --page-text: #e5e7eb;
+            --muted: #aab4c3;
+            --surface: #1f2937;
+            --field: #111827;
+            --field-border: #4b5563;
+            --card-bg: #263244;
+            --card-border: #374151;
+            --notice-bg: #26364d;
+            --grid-bg: #374151;
+            background: linear-gradient(135deg, #111827, #0f172a);
+            color: var(--page-text)
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 18px;
+            right: 20px;
+            z-index: 1000;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border: 1px solid var(--card-border);
+            border-radius: 50%;
+            background: var(--surface);
+            color: var(--page-text);
+            display: grid;
+            place-items: center;
+            box-shadow: 0 4px 14px #0f172a18
+        }
+
+        .theme-toggle svg {
+            width: 22px;
+            height: 22px
+        }
+
+        body.dark h1,
+        body.dark .chart-option h2 {
+            color: #e5e7eb
+        }
+
+        body.dark p,
+        body.dark .hint,
+        body.dark .home-footer,
+        body.dark .card-bottom span {
+            color: var(--muted)
+        }
+
+        body.dark .form-card,
+        body.dark .chart-card,
+        body.dark .chart-option {
+            background: var(--surface);
+            color: var(--page-text);
+            border-color: var(--card-border)
+        }
+
+        body.dark input,
+        body.dark textarea {
+            background: var(--field);
+            color: var(--page-text);
+            border-color: var(--field-border)
+        }
+
+        body.dark .dataset-card {
+            background: var(--card-bg);
+            border-color: var(--card-border)
+        }
+
+        body.dark .notice {
+            background: var(--notice-bg);
+            color: var(--page-text)
+        }
+
+        body.dark .chart-option:hover {
+            border-color: #64748b
+        }
+
+        body.dark .select-btn {
+            background: #334155;
+            color: #f8fafc
+        }
+
+        body.dark .chart-wrapper {
+            color: var(--page-text)
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto
+        }
+
+        .page {
+            display: none
+        }
+
+        .page.active {
+            display: block
+        }
+
+        #home.active {
+            display: flex
+        }
+
+        #home {
+            min-height: 85vh;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            gap: 20px
+        }
+
+        h1 {
+            color: #1e3a8a;
+            font-size: clamp(26px, 5vw, 40px)
+        }
+
+        p {
+            color: #64748b;
+            line-height: 1.6
+        }
+
+        button {
+            padding: 12px 20px;
+            border: 0;
+            border-radius: 9px;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: .2s
+        }
+
+        button:hover {
+            opacity: .88;
+            transform: translateY(-1px)
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            width: 100%
+        }
+
+        .line-btn {
+            background: #16a34a
+        }
+
+        .bar-btn {
+            background: #2563eb
+        }
+
+        .pie-btn {
+            background: #9333ea
+        }
+
+        .polar-btn {
+            background: #ea580c
+        }
+
+        .radar-btn {
+            background: #db2777
+        }
+
+        .scatter-btn {
+            background: #0891b2
+        }
+
+        .back-btn {
+            background: #334155
+        }
+
+        .add-btn {
+            background: #0f766e
+        }
+
+        .remove-btn {
+            background: #dc2626;
+            padding: 9px 13px;
+            font-size: 13px
+        }
+
+        .remove-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            opacity: .7
+        }
+
+        .submit-btn {
+            background: #1d4ed8;
+            width: 100%;
+            margin-top: 15px
+        }
+
+        .form-card,
+        .chart-card {
+            background: white;
+            padding: clamp(18px, 4vw, 30px);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px #0f172a12;
+            margin-top: 22px
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px
+        }
+
+        .top-bar h1 {
+            font-size: clamp(24px, 4vw, 32px)
+        }
+
+        .form-group {
+            margin-bottom: 20px
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font: inherit;
+            background: white
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: 2px solid #bfdbfe;
+            border-color: #2563eb
+        }
+
+        textarea {
+            min-height: 85px;
+            resize: vertical
+        }
+
+        .hint {
+            font-size: 13px;
+            margin-top: 7px
+        }
+
+        .dataset-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px;
+            margin: 18px 0;
+            background: #f8fafc
+        }
+
+        .dataset-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px
+        }
+
+        .dataset-heading h3 {
+            font-size: 17px
+        }
+
+        .dataset-card .form-group:last-child {
+            margin-bottom: 0
+        }
+
+        .notice {
+            background: #eff6ff;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            margin: 15px 0;
+            line-height: 1.6
+        }
+
+        #error {
+            color: #dc2626;
+            margin-top: 12px;
+            font-size: 14px
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: clamp(300px, 55vh, 470px);
+            width: 100%
+        }
+
+        /* Home chart cards */
+        .home-header {
+            margin-bottom: 12px
+        }
+
+        .home-header p {
+            margin-top: 10px
+        }
+
+        .home-subtitle {
+            max-width: 580px
+        }
+
+        .home-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 20px;
+            width: 100%;
+            margin-top: 12px;
+            text-align: left
+        }
+
+        .chart-option {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 21px;
+            box-shadow: 0 5px 20px #0f172a08;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            min-width: 0;
+            transition: transform .2s, box-shadow .2s, border-color .2s
+        }
+
+        .chart-option:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px #0f172a12;
+            border-color: #c7d2fe
+        }
+
+        .chart-option:focus-visible {
+            outline: 3px solid #818cf8;
+            outline-offset: 3px
+        }
+
+        .chart-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 13px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 17px
+        }
+
+        .chart-icon svg {
+            width: 39px;
+            height: 39px
+        }
+
+        .icon-line {
+            background: #dcfce7;
+            color: #16a34a
+        }
+
+        .icon-bar {
+            background: #dbeafe;
+            color: #2563eb
+        }
+
+        .icon-pie {
+            background: #f3e8ff;
+            color: #9333ea
+        }
+
+        .icon-polar {
+            background: #ffedd5;
+            color: #ea580c
+        }
+
+        .icon-radar {
+            background: #fce7f3;
+            color: #db2777
+        }
+
+        .icon-scatter {
+            background: #cffafe;
+            color: #0891b2
+        }
+
+        .chart-option h2 {
+            font-size: 19px;
+            color: #1e293b;
+            margin-bottom: 8px
+        }
+
+        .chart-option .description {
+            font-size: 13px;
+            line-height: 1.65;
+            min-height: 43px;
+            margin-bottom: 18px
+        }
+
+        .card-bottom {
+            margin-top: auto;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px
+        }
+
+        .card-bottom span {
+            font-size: 12px;
+            color: #64748b
+        }
+
+        .select-btn {
+            padding: 9px 12px;
+            font-size: 12px;
+            background: #1e3a8a;
+            color: white;
+            white-space: nowrap
+        }
+
+        .home-footer {
+            font-size: 12px;
+            margin-top: 28px;
+            color: #64748b
+        }
+
+        @media(max-width:800px) {
+            .home-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 15px
+            }
+        }
+
+        @media(max-width:600px) {
+            body {
+                padding: 15px
+            }
+
+            #home {
+                justify-content: flex-start;
+                padding-top: 25px
+            }
+
+            .home-grid {
+                grid-template-columns: 1fr;
+                gap: 13px
+            }
+
+            .chart-option {
+                padding: 18px
+            }
+
+            .chart-icon {
+                width: 52px;
+                height: 52px;
+                margin-bottom: 12px
+            }
+
+            .chart-icon svg {
+                width: 34px;
+                height: 34px
+            }
+
+            .chart-option .description {
+                min-height: 0
+            }
+
+            .top-bar {
+                align-items: flex-start
+            }
+
+            .top-bar h1 {
+                width: 100%
+            }
+
+            .dataset-heading {
+                align-items: flex-start
+            }
+
+            .chart-wrapper {
+                height: 320px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode" title="Switch theme">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"></path>
+        </svg>
+    </button>
+    <div class="container">
+
+        <!-- HOME PAGE -->
+        <section id="home" class="page active">
+
+            <div class="home-header">
+                <h1>Dynamic Chart Maker</h1>
+                <p class="home-subtitle">Choose a chart type and turn your data into a clear visual representation.</p>
+            </div>
+
+            <div class="home-grid">
+
+                <button class="chart-option" onclick="selectChart('line')">
+                    <div class="chart-icon icon-line">
+                        <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.8"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 32V7M5 32H36" />
+                            <path d="M8 26L16 17L23 22L33 9" />
+                            <circle cx="8" cy="26" r="2" fill="currentColor" />
+                            <circle cx="16" cy="17" r="2" fill="currentColor" />
+                            <circle cx="23" cy="22" r="2" fill="currentColor" />
+                            <circle cx="33" cy="9" r="2" fill="currentColor" />
+                        </svg>
+                    </div>
+                    <h2>Line Chart</h2>
+                    <p class="description">Track trends, growth and changes over time using connected data points.</p>
+                    <div class="card-bottom"><span>Trends & changes</span></div>
+                </button>
+
+                <button class="chart-option" onclick="selectChart('bar')">
+                    <div class="chart-icon icon-bar">
+                        <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.5"
+                            stroke-linejoin="round">
+                            <path d="M5 34H36" />
+                            <rect x="8" y="21" width="6" height="13" rx="1" fill="currentColor" stroke="none" />
+                            <rect x="18" y="12" width="6" height="22" rx="1" fill="currentColor" stroke="none" />
+                            <rect x="28" y="5" width="6" height="29" rx="1" fill="currentColor" stroke="none" />
+                        </svg>
+                    </div>
+                    <h2>Bar Chart</h2>
+                    <p class="description">Compare revenue, expenses, profits or different categories side by side.</p>
+                    <div class="card-bottom"><span>Category comparison</span></div>
+                </button>
+
+                <button class="chart-option" onclick="selectChart('pie')">
+                    <div class="chart-icon icon-pie">
+                        <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.5"
+                            stroke-linejoin="round">
+                            <path d="M19 4A16 16 0 1 0 36 21H19Z" fill="currentColor" fill-opacity=".18" />
+                            <path d="M23 4A16 16 0 0 1 36 17H23Z" fill="currentColor" fill-opacity=".55" />
+                            <path d="M19 4V21H36" />
+                        </svg>
+                    </div>
+                    <h2>Pie Chart</h2>
+                    <p class="description">Understand proportions and how each category contributes to the total.</p>
+                    <div class="card-bottom"><span>Parts of a whole</span></div>
+                </button>
+
+                <button class="chart-option" onclick="selectChart('polarArea')">
+                    <div class="chart-icon icon-polar">
+                        <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <circle cx="20" cy="20" r="16" />
+                            <path d="M20 20V4A16 16 0 0 1 35 14Z" fill="currentColor" fill-opacity=".6" />
+                            <path d="M20 20L35 14A16 16 0 0 1 27 34Z" fill="currentColor" fill-opacity=".3" />
+                            <path d="M20 20L27 34A16 16 0 0 1 4 20Z" fill="currentColor" fill-opacity=".7" />
+                            <path d="M20 20L4 20A16 16 0 0 1 20 4Z" fill="currentColor" fill-opacity=".15" />
+                        </svg>
+                    </div>
+                    <h2>Polar Area Chart</h2>
+                    <p class="description">Compare values using circular sectors with different lengths and colors.</p>
+                    <div class="card-bottom"><span>Radial comparison</span></div>
+                </button>
+
+                <button class="chart-option" onclick="selectChart('radar')">
+                    <div class="chart-icon icon-radar">
+                        <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5"
+                            stroke-linejoin="round">
+                            <path d="M20 3L36 14L30 33H10L4 14Z" />
+                            <path d="M20 10L29 16L25 27H15L11 16Z" opacity=".5" />
+                            <path d="M20 3V20M36 14L20 20M30 33L20 20M10 33L20 20M4 14L20 20" />
+                            <path d="M20 8L30 15L26 29L13 27L9 15Z" fill="currentColor" fill-opacity=".25"
+                                stroke-width="2.3" />
+                        </svg>
+                    </div>
+                    <h2>Radar Chart</h2>
+                    <p class="description">Compare performance across multiple metrics in a single visual.</p>
+                    <div class="card-bottom"><span>Multi-metric analysis</span></div>
+                </button>
+
+                <button class="chart-option" onclick="selectChart('scatter')">
+                    <div class="chart-icon icon-scatter">
+                        <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.5"
+                            stroke-linecap="round">
+                            <path d="M5 4V35H37" stroke-width="2" />
+                            <circle cx="11" cy="27" r="2.4" fill="currentColor" />
+                            <circle cx="16" cy="20" r="2.4" fill="currentColor" />
+                            <circle cx="20" cy="25" r="2.4" fill="currentColor" />
+                            <circle cx="24" cy="13" r="2.4" fill="currentColor" />
+                            <circle cx="29" cy="17" r="2.4" fill="currentColor" />
+                            <circle cx="34" cy="7" r="2.4" fill="currentColor" />
+                        </svg>
+                    </div>
+                    <h2>Scatter Chart</h2>
+                    <p class="description">Explore data distribution and relationships between numeric values.</p>
+                    <div class="card-bottom"><span>Data distribution</span></div>
+                </button>
+
+            </div>
+
+            <p class="home-footer">Create charts • Compare data • Discover insights</p>
+        </section>
+
+
+        <!-- Data enter form -->
+        <section id="formPage" class="page">
+
+            <div class="top-bar">
+                <h1 id="formHeading">Enter Chart Data</h1>
+                <button class="back-btn" onclick="goHome()">Back to Home</button>
+            </div>
+
+            <div class="form-card">
+                <form id="chartForm">
+
+                    <div class="form-group">
+                        <label for="chartTitle">Chart Title</label>
+                        <input type="text" id="chartTitle" placeholder="e.g. Monthly Business Comparison" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="labels">Categories / Labels</label>
+                        <textarea id="labels" placeholder="Jan, Feb, Mar, Apr" required></textarea>
+                        <p class="hint">Enter comma-separated categories. Example: Jan, Feb, Mar, Apr.</p>
+                    </div>
+
+                    <div class="notice" id="chartNotice"></div>
+                    <div id="datasetsContainer"></div>
+
+                    <button type="button" id="addDatasetBtn" class="add-btn" onclick="addDataset()">+ Add
+                        Dataset</button>
+                    <button type="submit" class="submit-btn">Generate Chart</button>
+                    <p id="error" role="alert"></p>
+
+                </form>
+            </div>
+        </section>
+
+
+        <!-- CHART result -->
+        <section id="resultPage" class="page">
+            <div class="top-bar">
+                <h1 id="resultHeading">Your Chart</h1>
+                <button class="back-btn" onclick="editData()">Edit Data</button>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-wrapper">
+                    <canvas id="myChart"></canvas>
+                </div>
+            </div>
+
+            <div class="button-group" style="margin-top:20px">
+                <button class="back-btn" onclick="goHome()">Back to Home</button>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        let selectedType = "";
+        let chartInstance = null;
+
+        const themeToggle = document.getElementById("themeToggle");
+        const themeIcon = document.getElementById("themeIcon");
+
+        // First load par system ki light/dark check krte hai
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
+        document.body.classList.toggle("dark", systemTheme.matches);
+
+        function updateThemeIcon(isDark) {
+            if (isDark) {
+                themeIcon.innerHTML = '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l-1.42 1.42M17.65 6.35l-1.42-1.42"></path>';
+                themeToggle.setAttribute("aria-label", "Switch to light mode");
+                themeToggle.title = "Switch to light mode";
+            } else {
+                themeIcon.innerHTML = '<path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"></path>';
+                themeToggle.setAttribute("aria-label", "Switch to dark mode");
+                themeToggle.title = "Switch to dark mode";
+            }
+        }
+        updateThemeIcon(systemTheme.matches);
+
+        themeToggle.addEventListener("click", () => {
+            const isDark = document.body.classList.toggle("dark");
+            updateThemeIcon(isDark);
+
+            if (chartInstance) {
+                const textColor = isDark ? "#e5e7eb" : "#1e293b";
+                const mutedColor = isDark ? "#aab4c3" : "#64748b";
+                const gridColor = isDark ? "#374151" : "#edf0f7";
+                chartInstance.options.plugins.title.color = textColor;
+                chartInstance.options.plugins.legend.labels.color = textColor;
+                if (chartInstance.options.scales) {
+                    Object.values(chartInstance.options.scales).forEach(scale => {
+                        if (scale.ticks) scale.ticks.color = mutedColor;
+                        if (scale.grid) scale.grid.color = gridColor;
+                        if (scale.angleLines) scale.angleLines.color = gridColor;
+                    });
+                }
+                chartInstance.update();
+            }
+        });
+
+        const chartNames = {
+            line: "Line Chart",
+            bar: "Bar Chart",
+            pie: "Pie Chart",
+            polarArea: "Polar Area Chart",
+            radar: "Radar Chart",
+            scatter: "Scatter Chart"
+        };
+
+        const colors = [
+            "#16a34a", "#2563eb", "#dc2626", "#9333ea",
+            "#f59e0b", "#0891b2", "#db2777", "#4f46e5",
+            "#65a30d", "#ea580c"
+        ];
+
+        const labelsInput = document.getElementById("labels");
+        const datasetsContainer = document.getElementById("datasetsContainer");
+        const error = document.getElementById("error");
+
+        function isPie() {
+            return selectedType === "pie";
+        }
+
+        function selectChart(type) {
+            selectedType = type;
+
+            document.getElementById("formHeading").textContent =
+                chartNames[type] + " - Enter Your Data";
+
+            document.getElementById("chartForm").reset();
+            error.textContent = "";
+            datasetsContainer.innerHTML = "";
+
+            labelsInput.placeholder = type === "pie"
+                ? "Expenses, Profit, Revenue"
+                : "Jan, Feb, Mar, Apr";
+
+            document.getElementById("chartNotice").textContent =
+                type === "pie"
+                    ? "Pie Chart uses one dataset. Dataset name is not required. Enter one value for each category."
+                    : type === "scatter"
+                        ? "Enter one numeric Y value for each category. The category order determines the X position."
+                        : "Add datasets to compare different values. At least one dataset is required.";
+
+            document.getElementById("addDatasetBtn").style.display =
+                isPie() ? "none" : "inline-block";
+
+            addDataset();
+            showPage("formPage");
+        }
+
+        function getLabelCount() {
+            const text = labelsInput.value.trim();
+            return text ? text.split(",").length : 0;
+        }
+
+        function addDataset(name = "", values = "") {
+            if (isPie() && datasetsContainer.children.length >= 1) return;
+
+            const card = document.createElement("div");
+            card.className = "dataset-card";
+
+            const heading = document.createElement("div");
+            heading.className = "dataset-heading";
+
+            const title = document.createElement("h3");
+            heading.appendChild(title);
+
+            const removeButton = document.createElement("button");
+            removeButton.type = "button";
+            removeButton.className = "remove-btn";
+            removeButton.textContent = "Remove";
+
+            removeButton.addEventListener("click", () => {
+                if (datasetsContainer.children.length <= 1) {
+                    error.textContent = "At least one dataset is required.";
+                    return;
+                }
+                card.remove();
+                error.textContent = "";
+                updateDatasetHeadings();
+            });
+
+            heading.appendChild(removeButton);
+            card.appendChild(heading);
+
+            if (!isPie()) {
+                const nameGroup = document.createElement("div");
+                nameGroup.className = "form-group";
+
+                const nameLabel = document.createElement("label");
+                nameLabel.textContent = "Dataset Name";
+
+                const nameInput = document.createElement("input");
+                nameInput.type = "text";
+                nameInput.className = "dataset-name";
+                nameInput.placeholder = "e.g. Revenue, Profit, Expenses";
+                nameInput.value = name;
+                nameInput.required = true;
+
+                nameGroup.append(nameLabel, nameInput);
+                card.appendChild(nameGroup);
+            }
+
+            const valuesGroup = document.createElement("div");
+            valuesGroup.className = "form-group";
+
+            const valuesLabel = document.createElement("label");
+            valuesLabel.textContent = "Data Values";
+
+            const valuesInput = document.createElement("textarea");
+            valuesInput.className = "dataset-values";
+            valuesInput.placeholder = "e.g. 50000, 60000, 55000, 70000";
+            valuesInput.value = values;
+            valuesInput.required = true;
+
+            const hint = document.createElement("p");
+            hint.className = "hint";
+            hint.textContent = "Enter numeric values separated by commas. Values count must match labels count.";
+
+            valuesInput.addEventListener("input", () => {
+                const cleaned = valuesInput.value.replace(/[^0-9,.\-\s]/g, "");
+                if (cleaned !== valuesInput.value) valuesInput.value = cleaned;
+
+                const labelCount = getLabelCount();
+                const parts = valuesInput.value.split(",");
+
+                if (labelCount > 0 && parts.length > labelCount) {
+                    valuesInput.value = parts.slice(0, labelCount).join(",");
+                    error.textContent = "Maximum " + labelCount + " values allowed for the current labels.";
+                } else {
+                    error.textContent = "";
+                }
+            });
+
+            valuesGroup.append(valuesLabel, valuesInput, hint);
+            card.appendChild(valuesGroup);
+            datasetsContainer.appendChild(card);
+
+            updateDatasetHeadings();
+        }
+
+        function updateDatasetHeadings() {
+            const cards = [...document.querySelectorAll(".dataset-card")];
+
+            cards.forEach((card, index) => {
+                card.querySelector("h3").textContent = "Dataset " + (index + 1);
+
+                const button = card.querySelector(".remove-btn");
+                button.disabled = cards.length === 1;
+                button.title = button.disabled
+                    ? "At least one dataset is required"
+                    : "Remove this dataset";
+            });
+        }
+
+        labelsInput.addEventListener("input", () => {
+            error.textContent = "";
+            const count = getLabelCount();
+
+            document.querySelectorAll(".dataset-values").forEach(input => {
+                const parts = input.value.split(",");
+                if (count > 0 && parts.length > count) {
+                    input.value = parts.slice(0, count).join(",");
+                }
+            });
+        });
+
+        document.getElementById("chartForm").addEventListener("submit", event => {
+            event.preventDefault();
+            error.textContent = "";
+
+            const title = document.getElementById("chartTitle").value.trim();
+            const labelsText = labelsInput.value.trim();
+
+            if (!labelsText) {
+                error.textContent = "Please enter category labels.";
+                return;
+            }
+
+            const labels = labelsText.split(",").map(s => s.trim());
+
+            if (labels.some(s => s === "")) {
+                error.textContent = "Please enter a valid label for every category.";
+                return;
+            }
+
+            if (labels.length < 2) {
+                error.textContent = "Please enter at least two categories.";
+                return;
+            }
+
+            const cards = [...document.querySelectorAll(".dataset-card")];
+
+            if (cards.length === 0) {
+                error.textContent = "At least one dataset is required.";
+                return;
+            }
+
+            const datasets = [];
+
+            for (let i = 0; i < cards.length; i++) {
+                const card = cards[i];
+                const nameInput = card.querySelector(".dataset-name");
+                const name = nameInput ? nameInput.value.trim() : "Values";
+                const raw = card.querySelector(".dataset-values").value.trim();
+
+                if (!raw) {
+                    error.textContent = "Please enter values for Dataset " + (i + 1) + ".";
+                    return;
+                }
+
+                const parts = raw.split(",").map(v => v.trim());
+
+                if (parts.some(v => v === "")) {
+                    error.textContent = "Please fill every value. Avoid empty entries between commas.";
+                    return;
+                }
+
+                const validNumber = /^-?(?:\d+\.?\d*|\.\d+)$/;
+
+                if (parts.some(v => !validNumber.test(v))) {
+                    error.textContent = "Only valid numbers are allowed. Use commas to separate values.";
+                    return;
+                }
+
+                const values = parts.map(Number);
+
+                if (values.some(v => !Number.isFinite(v))) {
+                    error.textContent = "Please enter valid numeric values.";
+                    return;
+                }
+
+                if (values.length !== labels.length) {
+                    error.textContent =
+                        "Dataset " + (i + 1) + " must have exactly " +
+                        labels.length + " values to match the categories.";
+                    return;
+                }
+
+                if (isPie() &&
+                    (values.some(v => v < 0) || values.every(v => v === 0))) {
+                    error.textContent =
+                        "Pie Chart values must be non-negative, with a total greater than zero.";
+                    return;
+                }
+
+                datasets.push({ label: name, data: values });
+            }
+
+            createChart(title, labels, datasets);
+        });
+
+        function createChart(title, labels, userDatasets) {
+            if (chartInstance) {
+                chartInstance.destroy();
+                chartInstance = null;
+            }
+
+            const datasets = userDatasets.map((dataset, index) => {
+                const color = colors[index % colors.length];
+
+                if (selectedType === "pie") {
+                    return {
+                        ...dataset,
+                        backgroundColor: labels.map((_, i) => colors[i % colors.length]),
+                        borderColor: "#ffffff",
+                        borderWidth: 2,
+                        hoverOffset: 10
+                    };
+                }
+
+                if (selectedType === "polarArea") {
+                    return {
+                        ...dataset,
+                        backgroundColor: labels.map((_, i) => colors[i % colors.length]),
+                        borderColor: "#ffffff",
+                        borderWidth: 2
+                    };
+                }
+
+                if (selectedType === "scatter") {
+                    return {
+                        ...dataset,
+                        data: dataset.data.map((y, i) => ({ x: i, y: y })),
+                        backgroundColor: color,
+                        borderColor: color,
+                        pointRadius: 5,
+                        pointHoverRadius: 8
+                    };
+                }
+
+                return {
+                    ...dataset,
+                    borderColor: color,
+                    backgroundColor: selectedType === "radar" ? color + "40" : color,
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: selectedType === "radar",
+                    pointRadius: selectedType === "line" || selectedType === "radar" ? 4 : 0,
+                    pointBackgroundColor: color,
+                    borderRadius: selectedType === "bar" ? 5 : 0
+                };
+            });
+
+            const config = {
+                type: selectedType,
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: title,
+                            font: { size: 18 },
+                            padding: 20
+                        },
+                        legend: {
+                            display: !isPie(),
+                            position: "top"
+                        }
+                    }
+                }
+            };
+
+            if (["line", "bar", "scatter"].includes(selectedType)) {
+                config.options.scales = {
+                    x: {
+                        grid: { color: document.body.classList.contains("dark") ? "#374151" : "#edf0f7" },
+                        ticks: selectedType === "scatter" ? {
+                            stepSize: 1,
+                            callback: value => labels[value] ?? ""
+                        } : {}
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: document.body.classList.contains("dark") ? "#374151" : "#edf0f7" }
+                    }
+                };
+            }
+
+            if (selectedType === "scatter") {
+                config.options.scales.x.type = "linear";
+                config.options.scales.x.min = 0;
+                config.options.scales.x.max = labels.length - 1;
+            }
+
+            if (selectedType === "radar") {
+                config.options.scales = {
+                    r: {
+                        beginAtZero: true,
+                        grid: { color: document.body.classList.contains("dark") ? "#374151" : "#e2e8f0" },
+                        angleLines: { color: document.body.classList.contains("dark") ? "#374151" : "#e2e8f0" }
+                    }
+                };
+            }
+
+            chartInstance = new Chart(document.getElementById("myChart"), config);
+            document.getElementById("resultHeading").textContent = title;
+            showPage("resultPage");
+        }
+
+        function showPage(id) {
+            document.querySelectorAll(".page").forEach(page => page.classList.remove("active"));
+            document.getElementById(id).classList.add("active");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function goHome() {
+            if (chartInstance) {
+                chartInstance.destroy();
+                chartInstance = null;
+            }
+            showPage("home");
+        }
+
+        function editData() {
+            showPage("formPage");
+        }
+    </script>
+</body>
+
+</html>
